@@ -1,5 +1,10 @@
 'use strict';
 
+var pluginErrors = require('./lib/errors');
+var spawnSync = require('child_process').spawnSync;
+
+var preFlightCheck = spawnSync('ffmpeg', ['-version']).error === undefined;
+
 function AudioSpritePlugin (options) {}
 
 AudioSpritePlugin.loader = function(options) {
@@ -13,6 +18,11 @@ AudioSpritePlugin.prototype.loader = function(options) {
 };
 
 AudioSpritePlugin.prototype.apply = function(compiler) {
+	compiler.plugin('compilation', function(compilation) {
+		if (!preFlightCheck) {
+			compilation.errors.push(pluginErrors.preflightError);
+		}
+	});
 
 };
 
