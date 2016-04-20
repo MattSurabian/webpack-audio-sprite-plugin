@@ -1,2 +1,4 @@
 test/
-.gitattributes
+.travis.yml
+appveyor.yml
+.editorconfig
