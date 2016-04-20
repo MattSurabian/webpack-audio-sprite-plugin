@@ -1,3 +1,5 @@
+**_This plugin and loader are still in active development and not feature complete_**
+
 # Webpack Audio Sprite Plugin & Loader
 
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/mattsurabian/webpack-audio-sprite-plugin?branch=master&svg=true)](https://ci.appveyor.com/project/MattSurabian/webpack-audio-sprite-plugin)
