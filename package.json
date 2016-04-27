@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "description": "A plugin and loader that work together to automate the generation of audio sprites and manifest objects for required audio files.",
   "scripts": {
-    "travis": "exit 0",
-    "appveyor": "exit 0"
+    "test": "mocha"
   },
   "keywords": [
     "webpack",
@@ -21,5 +20,9 @@
   "license": "MIT",
   "dependencies": {
     "loader-utils": "^0.2.14"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5"
   }
 }

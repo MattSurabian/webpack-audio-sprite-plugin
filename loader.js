@@ -1,13 +1,28 @@
 'use strict';
 
-var pluginErrors = require('./lib/errors');
-var spawnSync = require('child_process').spawnSync;
+var ffmpeg = require('./lib/ffmpeg');
+var Manifest = require('./lib/manifestEntry');
 
-var preFlightCheck = spawnSync('ffprobe', ['-version']).error === undefined;
+module.exports = function() {
+  // Will throw an error if ffprobe isn't available
+  ffmpeg.preFlightCheck();
 
-module.exports = function(source) {
-	if (!preFlightCheck) {
-		throw new Error(pluginErrors.preflightError);
-	}
-	return 'module.exports = {};';
+  this.cacheable && this.cacheable();
+  var callback = this.async();
+
+  if (!callback) {
+    var fileInfo = ffmpeg.getFileInfoSync(this.resourcePath);
+    return new Manifest(this, fileInfo).getModuleSync();
+  } else {
+    var _this = this;
+    Promise.resolve()
+      .then(ffmpeg.getFileInfo.bind(null, this.resourcePath))
+      .then(function(fileInfo) {
+        return Manifest(_this, fileInfo).getModule();
+      })
+      .then(function(manifestModule) {
+        callback(null, manifestModule);
+      })
+      .catch(callback);
+  }
 };

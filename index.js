@@ -12,17 +12,17 @@ AudioSpritePlugin.loader = function(options) {
 };
 
 AudioSpritePlugin.prototype.loader = function(options) {
-	options = JSON.parse(JSON.stringify(options || {}));
-	options.id = this.id;
-	return AudioSpritePlugin.loader(options);
+  options = JSON.parse(JSON.stringify(options || {}));
+  options.id = this.id;
+  return AudioSpritePlugin.loader(options);
 };
 
 AudioSpritePlugin.prototype.apply = function(compiler) {
-	compiler.plugin('compilation', function(compilation) {
-		if (!preFlightCheck) {
-			compilation.errors.push(pluginErrors.preflightError);
-		}
-	});
+  compiler.plugin('compilation', function(compilation) {
+    if (!preFlightCheck) {
+      compilation.errors.push(pluginErrors.preflightError);
+    }
+  });
 
 };
 

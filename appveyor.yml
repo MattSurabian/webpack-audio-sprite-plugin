@@ -9,10 +9,11 @@ environment:
 install:
   - ps: Update-NodeJsInstallation (Get-NodeJsLatestBuild $env:nodejs_version)
   - npm install
+  - cinst -y ffmpeg
 
 build: off
 
 test_script:
   - node --version
   - npm --version
-  - cmd: npm run appveyor
+  - cmd: npm test

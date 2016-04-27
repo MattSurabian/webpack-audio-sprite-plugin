@@ -1,5 +1,10 @@
+before_script:
+  # download FFmpeg Linux static build linked from FFmpeg's official download page
+  - wget http://johnvansickle.com/ffmpeg/builds/ffmpeg-git-64bit-static.tar.xz
+  - tar -xJf ffmpeg-git-64bit-static.tar.xz
+  - mv ffmpeg-git-*/ ffmpeg/
+  - export PATH=$PWD/ffmpeg:$PATH
 language: node_js
 node_js:
   - "5"
   - "4"
-script: npm run travis
