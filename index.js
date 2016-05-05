@@ -1,17 +1,18 @@
 'use strict';
 
 var path = require('path');
-var crypto = require('crypto');
+var hashId = require('./lib/hashId');
 var pluginErrors = require('./lib/errors');
+var RewritableModule = require('./lib/rewritableModule');
 var spawnSync = require('child_process').spawnSync;
-var NormalModule = require('webpack/lib/NormalModule');
-var OriginalSource = require('webpack/lib/OriginalSource');
 var preFlightCheck = spawnSync('ffmpeg', ['-version']).error === undefined;
 
-var soundDataCache = {};
+var loaderPath = path.join(__dirname, 'loader.js');
 
 // TODO: Document
-function AudioSpritePlugin (options) {}
+function AudioSpritePlugin (options) {
+  this.manifestCache = {};
+}
 
 AudioSpritePlugin.loader = function(options) {
   return require.resolve("./loader") + (options ? "?" + JSON.stringify(options) : "");
@@ -33,33 +34,72 @@ AudioSpritePlugin.prototype.apply = function(compiler) {
     compilation.plugin("normal-module-loader", function(loaderContext, module) {
       loaderContext[__dirname] = _this;
     });
-    
+
     params.normalModuleFactory.plugin('resolver', function(resolver) {
       return function(request, callback) {
-        var cacheKey = request.request.split('/').pop();
-        if (soundDataCache[cacheKey]) {
-          var module = new NormalModule(request.request, request.request, request.request, [], request.request, params.normalModuleFactory.parser);
-          module.build = function(options, compilation, resolver, fs, callback) {
-            NormalModule.prototype.build.call(this, options, compilation, resolver, {
-              readFile: function(filepath, callback) {
-                var buffy = new Buffer(`module.exports = {${soundDataCache[cacheKey].getManifestEntryString()}};`);
-                callback(null, buffy);
-              }
-            }, callback);
-          };
-          callback(null, module);
+        var manifest = _this.manifestCache[path.basename(request.request)];
+        if (manifest) {
+          callback(null, new RewritableModule(request, params.normalModuleFactory.parser, `{${manifest}};`));
         } else {
           resolver.apply(null, arguments);
         }
       };
     });
-  });
 
+    compilation.plugin('optimize-tree', function(chunks, modules, cb) {
+      chunks.forEach(function(chunk) {
+        var chunkAudioModules = [];
+        var chunkManifestBody = '';
+        
+        chunk.modules.forEach(function(module) {
+          if (module.loaders.indexOf(loaderPath) !== -1) {
+            var moduleManifest = _this.manifestCache[hashId.deterministic(module.resource)];
+            if (moduleManifest) {
+              if (chunkAudioModules.length > 0) {
+                chunkManifestBody += ',';
+              }
+              chunkManifestBody += moduleManifest;
+              chunkAudioModules.push(module);
+            }
+          }
+        });
+
+        var chunkManifestPath = null;
+        Promise.all(chunkAudioModules.map(function(module, moduleIndex) {
+            return new Promise(function(resolve, reject) {
+              module.dependencies.forEach(function(dep) {
+                if (_this.manifestCache[path.basename(dep.request)]) {
+                  var moduleBody;
+                  if (moduleIndex === 0) {
+                    moduleBody = `{${chunkManifestBody}};`;
+                    chunkManifestPath = dep.module.request;
+                  } else {
+                    moduleBody = `require("${chunkManifestPath}");`;
+                  }
+
+                  dep.module.setBodySoon(moduleBody);
+                  compilation.rebuildModule(dep.module, resolve);
+                } else {
+                  resolve();
+                }
+              });
+            });
+          }))
+          .then(function() {
+            cb(null);
+          });
+      });
+    });
+  });
 };
 
-// TODO Document
+/**
+ * Helper method that can be used by loaders to add sounds into the audio info
+ * cache
+ * @param sound
+ */
 AudioSpritePlugin.prototype.addSound = function(sound) {
-  soundDataCache[sound.id] = sound;
+  this.manifestCache[sound.id] = sound.getManifestEntryString();
 };
 
 module.exports = AudioSpritePlugin;
